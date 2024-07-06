@@ -1,3 +1,5 @@
+require('dotenv').config(); // Load environment variables from .env file
+
 // Import necessary modules
 const inquirer = require("inquirer"); // For user prompts
 const { Client } = require("pg"); // PostgreSQL database connection
