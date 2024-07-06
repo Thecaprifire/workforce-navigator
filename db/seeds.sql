@@ -1,3 +1,4 @@
+-- Insert departments data
 INSERT INTO departments (department_name)
 VALUES 
 ('Executive Board'),
@@ -11,6 +12,7 @@ VALUES
 ('Legal'),
 ('Maintenance');
 
+-- Insert roles data
 INSERT INTO roles (title, salary, department_id)
 VALUES 
 ('Chief Executive Officer', 555000.00, 1),
@@ -20,10 +22,11 @@ VALUES
 ('Senior Engineer', 185000.00, 5),
 ('IT Manager', 125000.00, 6),
 ('Customer Relations Manager', 75000.00, 7),
-('Research and Development Manager ', 185000.00, 8),
+('Research and Development Manager', 185000.00, 8),
 ('Legal Manager', 95000.00, 9),
 ('Maintenance Manager', 135000.00, 10);
 
+-- Insert employee data
 INSERT INTO employee (first_name, last_name, role_id, manager_id)
 VALUES
 ('Janine', 'Lindo', 1, 1),
