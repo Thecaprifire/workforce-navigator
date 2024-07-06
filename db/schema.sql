@@ -1,11 +1,11 @@
 -- Drop database if it exists (be careful with this in production)
-DROP DATABASE IF EXISTS employeeTracker_db;
+DROP DATABASE IF EXISTS employeetracker_db;
 
 -- Create the database
-CREATE DATABASE employeeTracker_db;
+CREATE DATABASE employeetracker_db;
 
 -- Connect to the database
-\c employeeTracker_db;
+\c employeetracker_db;
 
 -- Create departments table
 CREATE TABLE departments (

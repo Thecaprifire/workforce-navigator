@@ -8,7 +8,7 @@ const connection = new Client({
     host: "localhost", // PostgreSQL server host
     user: "", // PostgreSQL username
     password: "", // PostgreSQL password
-    database: "employeeTracker_db", // Database name
+    database: "employeetracker_db", // Database name
 });
 
 // Connect to the database
@@ -20,10 +20,10 @@ connection.connect((err) => {
 });
 
 // Function to style and display application title
-cfonts.say('Employee Tracker', {
+cfonts.say('Employee \nTracker', {
 	font: 'block',              // Font face for the title
 	align: 'left',              // Alignment of the text
-	colors: ['yellow'],         // Color of the text
+	colors: ['red'],         // Color of the text
 	background: 'transparent',  // Background color
 	letterSpacing: 1,           // Letter spacing
 	lineHeight: 1,              // Line height
