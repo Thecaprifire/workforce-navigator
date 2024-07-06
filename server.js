@@ -8,8 +8,8 @@ const cfonts = require('cfonts'); // Styling console output
 // Create a PostgreSQL connection configuration
 const connection = new Client({
     host: "localhost", // PostgreSQL server host
-    user: "", // PostgreSQL username
-    password: "", // PostgreSQL password
+    user: process.env.PG_USER, // PostgreSQL username
+    password: process.env.PG_PASSWORD, // PostgreSQL password
     database: "employeetracker_db", // Database name
 });
 
