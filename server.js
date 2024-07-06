@@ -1,6 +1,6 @@
 // Import necessary modules
 const inquirer = require("inquirer"); // For user prompts
-const mysql = require("mysql2"); // MySQL database connection
+const { Client } = require("pg"); // PostgreSQL database connection
 const cfonts = require('cfonts'); // Styling console output
 
 // Create a MySQL connection configuration
