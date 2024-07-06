@@ -3,11 +3,11 @@ const inquirer = require("inquirer"); // For user prompts
 const { Client } = require("pg"); // PostgreSQL database connection
 const cfonts = require('cfonts'); // Styling console output
 
-// Create a MySQL connection configuration
-const connection = mysql.createConnection({
-    host: "localhost", // MySQL server host
-    user: "root", // MySQL username
-    password: "", // MySQL password
+// Create a PostgreSQL connection configuration
+const connection = new Client({
+    host: "localhost", // PostgreSQL server host
+    user: "", // PostgreSQL username
+    password: "", // PostgreSQL password
     database: "employeeTracker_db", // Database name
 });
 
