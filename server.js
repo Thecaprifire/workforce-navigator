@@ -11,6 +11,7 @@ const connection = new Client({
     user: process.env.PG_USER, // PostgreSQL username
     password: process.env.PG_PASSWORD, // PostgreSQL password
     database: "employeetracker_db", // Database name
+    port: 5432,               // PostgreSQL server port 
 });
 
 // Connect to the database
@@ -168,51 +169,49 @@ function addDepartment() {
 function addRole() {
     const query = "SELECT * FROM departments"; // SQL query to select all departments
     connection.query(query, (err, res) => {
-        if (err) throw err;
-        inquirer
-            .prompt([
-                {
-                    type: "input",
-                    name: "title",
-                    message: "Enter the title of the new role:", // Prompt user for role title
-                },
-                {
-                    type: "input",
-                    name: "salary",
-                    message: "Enter the salary of the new role:", // Prompt user for role salary
-                },
-                {
-                    type: "list",
-                    name: "department",
-                    message: "Select the department for the new role:", // Prompt user to select department for the new role
-                    choices: res.map(
-                        (department) => department.department_name
-                    ), // List of department choices from database
-                },
-            ])
-            .then((answers) => {
-                const department = res.find(
-                    (department) => department.name === answers.department
-                ); // Find selected department object
-                const query = "INSERT INTO roles SET ?"; // SQL query to insert new role
-                connection.query(
-                    query,
-                    {
-                        title: answers.title,
-                        salary: answers.salary,
-                        department_id: department,
-                    }, // Role details
-                    (err, res) => {
-                        if (err) throw err;
-                        console.log(
-                            `Added role ${answers.title} with salary ${answers.salary} to the ${answers.department} department in the database!`
-                        ); // Confirmation message for adding role
-                        start(); // Restart the application
-                    }
-                );
-            });
+      if (err) throw err;
+      inquirer
+        .prompt([
+          {
+            type: "input",
+            name: "title",
+            message: "Enter the title of the new role:", // Prompt user for role title
+          },
+          {
+            type: "input",
+            name: "salary",
+            message: "Enter the salary of the new role:", // Prompt user for role salary
+          },
+          {
+            type: "list",
+            name: "department",
+            message: "Select the department for the new role:", // Prompt user to select department for the new role
+            choices: res.map((department) => department.department_name), // List of department choices from database
+          },
+        ])
+        .then((answers) => {
+          const department = res.find(
+            (department) => department.department_name === answers.department
+          ); // Find selected department object
+          const query = "INSERT INTO roles SET ?"; // SQL query to insert new role
+          connection.query(
+            query,
+            {
+              title: answers.title,
+              salary: answers.salary,
+              department_id: department.id,
+            }, // Role details
+            (err, res) => {
+              if (err) throw err;
+              console.log(
+                `Added role ${answers.title} with salary ${answers.salary} to the ${answers.department} department in the database!`
+              ); // Confirmation message for adding role
+              start(); // Restart the application
+            }
+          );
+        });
     });
-}
+  }
 
 // Function to add an employee
 function addEmployee() {
@@ -355,68 +354,14 @@ function addManager() {
                             answers.manager
                     ); // Find selected manager object
                     const query =
-                        "UPDATE employee SET manager_id = ? WHERE id = ? AND role_id IN (SELECT id FROM roles WHERE department_id = ?)";
+                        "UPDATE employee SET manager_id = ? WHERE id = ?";
                     connection.query(
                         query,
-                        [manager.id, employee.id, department.id],
+                        [manager.id, employee.id],
                         (err, res) => {
                             if (err) throw err; // Throw error if query fails
                             console.log(
                                 `Added manager ${manager.first_name} ${manager.last_name} to employee ${employee.first_name} ${employee.last_name} in department ${department.department_name}!`
-                            ); // Success message
-                            start(); // Restart the application
-                        }
-                    );
-                });
-        });
-    });
-}
-
-// Function to update an employee role
-function updateEmployeeRole() {
-    const queryEmployees =
-        "SELECT employee.id, employee.first_name, employee.last_name, roles.title FROM employee LEFT JOIN roles ON employee.role_id = roles.id"; // SQL query to retrieve employees and their current roles
-    const queryRoles = "SELECT * FROM roles"; // SQL query to retrieve all roles
-    connection.query(queryEmployees, (err, resEmployees) => {
-        if (err) throw err; // Throw error if query fails
-        connection.query(queryRoles, (err, resRoles) => {
-            if (err) throw err; // Throw error if query fails
-            inquirer
-                .prompt([
-                    {
-                        type: "list",
-                        name: "employee",
-                        message: "Select the employee to update:", // Prompt to select employee to update
-                        choices: resEmployees.map(
-                            (employee) =>
-                                `${employee.first_name} ${employee.last_name}`
-                        ), // List of employee choices
-                    },
-                    {
-                        type: "list",
-                        name: "role",
-                        message: "Select the new role:", // Prompt to select new role
-                        choices: resRoles.map((role) => role.title), // List of role choices
-                    },
-                ])
-                .then((answers) => {
-                    const employee = resEmployees.find(
-                        (employee) =>
-                            `${employee.first_name} ${employee.last_name}` ===
-                            answers.employee
-                    ); // Find selected employee object
-                    const role = resRoles.find(
-                        (role) => role.title === answers.role
-                    ); // Find selected role object
-                    const query =
-                        "UPDATE employee SET role_id = ? WHERE id = ?"; // SQL query to update employee role
-                    connection.query(
-                        query,
-                        [role.id, employee.id],
-                        (err, res) => {
-                            if (err) throw err; // Throw error if query fails
-                            console.log(
-                                `Updated ${employee.first_name} ${employee.last_name}'s role to ${role.title} in the database!`
                             ); // Success message
                             start(); // Restart the application
                         }
