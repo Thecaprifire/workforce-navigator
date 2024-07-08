@@ -169,61 +169,70 @@ function addDepartment() {
 function addRole() {
     const query = "SELECT * FROM departments"; // SQL query to select all departments
     connection.query(query, (err, res) => {
-      if (err) throw err;
-      inquirer
-        .prompt([
-          {
-            type: "input",
-            name: "title",
-            message: "Enter the title of the new role:", // Prompt user for role title
-          },
-          {
-            type: "input",
-            name: "salary",
-            message: "Enter the salary of the new role:", // Prompt user for role salary
-          },
-          {
-            type: "list",
-            name: "department",
-            message: "Select the department for the new role:", // Prompt user to select department for the new role
-            choices: res.map((department) => department.department_name), // List of department choices from database
-          },
-        ])
-        .then((answers) => {
-          const department = res.find(
-            (department) => department.department_name === answers.department
-          ); // Find selected department object
-          const query = "INSERT INTO roles SET ?"; // SQL query to insert new role
-          connection.query(
-            query,
-            {
-              title: answers.title,
-              salary: answers.salary,
-              department_id: department.id,
-            }, // Role details
-            (err, res) => {
-              if (err) throw err;
-              console.log(
-                `Added role ${answers.title} with salary ${answers.salary} to the ${answers.department} department in the database!`
-              ); // Confirmation message for adding role
-              start(); // Restart the application
-            }
-          );
-        });
+        if (err) {
+            console.error(err); // Log error if query fails
+            return;
+        }
+
+        // Map departments from res.rows
+        const departments = res.rows.map((department) => department.department_name);
+
+        inquirer
+            .prompt([
+                {
+                    type: "input",
+                    name: "title",
+                    message: "Enter the title of the new role:", // Prompt user for role title
+                },
+                {
+                    type: "input",
+                    name: "salary",
+                    message: "Enter the salary of the new role:", // Prompt user for role salary
+                },
+                {
+                    type: "list",
+                    name: "department",
+                    message: "Select the department for the new role:", // Prompt user to select department for the new role
+                    choices: departments,
+                },
+            ])
+            .then((answers) => {
+                // Find department id based on department name selected
+                const departmentId = res.rows.find(
+                    (dept) => dept.department_name === answers.department
+                ).id;
+
+                // SQL query to insert new role
+                const query = "INSERT INTO roles (title, salary, department_id) VALUES ($1, $2, $3)";
+                const values = [answers.title, answers.salary, departmentId];
+
+                // Execute the query
+                connection.query(query, values, (err, res) => {
+                    if (err) {
+                        console.error(err); // Log error if query fails
+                        return;
+                    }
+
+                    console.log(
+                        `Added role ${answers.title} with salary ${answers.salary} to the ${answers.department} department in the database!`
+                    ); // Confirmation message for adding role
+                    start(); // Restart the application
+                });
+            });
     });
-  }
+}
 
 // Function to add an employee
 function addEmployee() {
     // Retrieve list of roles from the database
-    connection.query("SELECT id, title FROM roles", (error, results) => {
+    connection.query("SELECT id, title FROM roles", (error, roleResults) => {
         if (error) {
             console.error(error); // Log error if query fails
             return;
         }
 
-        // Map results to format required by Inquirer choices
-        const roles = results.map(({ id, title }) => ({
+        // Map roleResults to format required by Inquirer choices
+        const roles = roleResults.rows.map(({ id, title }) => ({
             name: title,
             value: id,
         }));
@@ -231,14 +240,14 @@ function addEmployee() {
         // Retrieve list of employees from the database to use as managers
         connection.query(
             'SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee',
-            (error, results) => {
+            (error, employeeResults) => {
                 if (error) {
                     console.error(error); // Log error if query fails
                     return;
                 }
 
-                // Map results to format required by Inquirer choices
-                const managers = results.map(({ id, name }) => ({
+                // Map employeeResults to format required by Inquirer choices
+                const managers = employeeResults.rows.map(({ id, name }) => ({
                     name,
                     value: id,
                 }));
@@ -275,9 +284,14 @@ function addEmployee() {
                     .then((answers) => {
                         // Insert the employee into the database
                         const sql =
-                            "INSERT INTO employee (first_name, last_name,                             role_id, manager_id) VALUES ($1, $2, $3, $4)";
-                        const values = [answers.firstName, answers.lastName, answers.roleId, answers.managerId];
-                        connection.query(sql, values, (error, results) => {
+                            "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ($1, $2, $3, $4)";
+                        const values = [
+                            answers.firstName,
+                            answers.lastName,
+                            answers.roleId,
+                            answers.managerId,
+                        ];
+                        connection.query(sql, values, (error, insertResult) => {
                             if (error) {
                                 console.error(error); // Log error if query fails
                                 return;
@@ -304,7 +318,7 @@ function addManager() {
             }
 
             // Map results to format required by Inquirer choices
-            const employees = results.map(({ id, name }) => ({
+            const employees = results.rows.map(({ id, name }) => ({
                 name,
                 value: id,
             }));
