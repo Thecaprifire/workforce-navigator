@@ -553,7 +553,18 @@ async function viewTotalUtilizedBudgetOfDepartment() {
     try {
         // Retrieve list of departments from the database
         const departmentsQuery = util.promisify(connection.query).bind(connection);
-        const departments = await departmentsQuery("SELECT id, department_name FROM departments");
+        const result = await departmentsQuery("SELECT id, department_name FROM departments");
+
+        // Access the rows property to get the actual department data
+        const departments = result.rows;
+
+        // Remove or comment out this debug information
+        // console.log("Departments data:", departments);
+
+        // Check if departments is an array and has the necessary properties
+        if (!Array.isArray(departments) || departments.length === 0 || !departments[0].id || !departments[0].department_name) {
+            throw new Error("Departments data is not in expected format");
+        }
 
         // Map results to format required by Inquirer choices
         const departmentChoices = departments.map(({ id, department_name }) => ({
@@ -577,15 +588,18 @@ async function viewTotalUtilizedBudgetOfDepartment() {
             FROM employee e
             INNER JOIN roles r ON e.role_id = r.id
             INNER JOIN departments d ON r.department_id = d.id
-            WHERE d.id = ?
+            WHERE d.id = $1
             GROUP BY d.department_name`;
 
         const budgetQuery = util.promisify(connection.query).bind(connection);
-        const results = await budgetQuery(sql, [answer.departmentId]);
+        const resultBudget = await budgetQuery(sql, [answer.departmentId]);
 
-        console.table(results); // Display total utilized budget in a table
+        // Access the rows property to get the actual result data
+        const budgetData = resultBudget.rows;
+
+        console.table(budgetData); // Display total utilized budget in a table format
         start(); // Restart the application
     } catch (error) {
-        console.error(error); // Log any errors
+        console.error("Error in viewTotalUtilizedBudgetOfDepartment:", error); // Log any errors
     }
 }
