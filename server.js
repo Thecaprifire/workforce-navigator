@@ -441,32 +441,51 @@ async function viewEmployeesByDepartment() {
     }
 }
 
+// Function to delete departments, roles, or employees
+async function deleteDepartmentsRolesEmployees() {
+    const { entityType } = await inquirer.prompt({
+        type: "list",
+        name: "entityType",
+        message: "What would you like to delete?",
+        choices: ["Department", "Role", "Employee"],
+    });
+
+    switch (entityType) {
+        case "Department":
+            await deleteDepartment();
+            break;
+        case "Role":
+            await deleteRole();
+            break;
+        case "Employee":
+            await deleteEmployee();
+            break;
+    }
+
+    start();
+}
+
 // Function to delete a department
 async function deleteDepartment() {
     try {
-        const results = await queryAsync("SELECT id, department_name FROM departments");
-
-        if (!results || results.length === 0) {
-            console.log("No departments found to delete.");
-            start();
-            return;
-        }
-
-        const departments = results.map(({ id, department_name }) => ({
-            name: department_name,
-            value: id,
+        const departmentsQuery = "SELECT * FROM departments";
+        const res = await connection.query(departmentsQuery);
+        const departments = res.rows.map((department) => ({
+            name: department.department_name,
+            value: department.id,
         }));
 
-        const answer = await inquirer.prompt({
+        const { departmentId } = await inquirer.prompt({
             type: "list",
             name: "departmentId",
-            message: "Select a department to delete:",
+            message: "Select the department to delete:",
             choices: departments,
         });
 
-        const deleteResult = await queryAsync("DELETE FROM departments WHERE id = ?", [answer.departmentId]);
-        console.log("Department deleted successfully!");
-        start();
+        const deleteQuery = "DELETE FROM departments WHERE id = $1";
+        await connection.query(deleteQuery, [departmentId]);
+
+        console.log(`Deleted department with ID ${departmentId} from the database.`);
     } catch (error) {
         console.error(error);
     }
@@ -475,29 +494,24 @@ async function deleteDepartment() {
 // Function to delete a role
 async function deleteRole() {
     try {
-        const results = await queryAsync("SELECT id, title FROM roles");
-
-        if (!results || results.length === 0) {
-            console.log("No roles found to delete.");
-            start();
-            return;
-        }
-
-        const roles = results.map(({ id, title }) => ({
-            name: title,
-            value: id,
+        const rolesQuery = "SELECT * FROM roles";
+        const res = await connection.query(rolesQuery);
+        const roles = res.rows.map((role) => ({
+            name: role.title,
+            value: role.id,
         }));
 
-        const answer = await inquirer.prompt({
+        const { roleId } = await inquirer.prompt({
             type: "list",
             name: "roleId",
-            message: "Select a role to delete:",
+            message: "Select the role to delete:",
             choices: roles,
         });
 
-        const deleteResult = await queryAsync("DELETE FROM roles WHERE id = ?", [answer.roleId]);
-        console.log("Role deleted successfully!");
-        start();
+        const deleteQuery = "DELETE FROM roles WHERE id = $1";
+        await connection.query(deleteQuery, [roleId]);
+
+        console.log(`Deleted role with ID ${roleId} from the database.`);
     } catch (error) {
         console.error(error);
     }
@@ -506,29 +520,29 @@ async function deleteRole() {
 // Function to delete an employee
 async function deleteEmployee() {
     try {
-        const results = await queryAsync("SELECT id, CONCAT(first_name, ' ', last_name) AS name FROM employee");
-
-        if (!results || results.length === 0) {
-            console.log("No employees found to delete.");
-            start();
-            return;
-        }
-
-        const employees = results.map(({ id, name }) => ({
-            name,
-            value: id,
+        const employeesQuery = `
+            SELECT e.id, e.first_name, e.last_name, r.title, d.department_name 
+            FROM employee e 
+            LEFT JOIN roles r ON e.role_id = r.id 
+            LEFT JOIN departments d ON r.department_id = d.id
+        `;
+        const res = await connection.query(employeesQuery);
+        const employees = res.rows.map((employee) => ({
+            name: `${employee.first_name} ${employee.last_name} (${employee.title}, ${employee.department_name})`,
+            value: employee.id,
         }));
 
-        const answer = await inquirer.prompt({
+        const { employeeId } = await inquirer.prompt({
             type: "list",
             name: "employeeId",
-            message: "Select an employee to delete:",
+            message: "Select the employee to delete:",
             choices: employees,
         });
 
-        const deleteResult = await queryAsync("DELETE FROM employee WHERE id = ?", [answer.employeeId]);
-        console.log("Employee deleted successfully!");
-        start();
+        const deleteQuery = "DELETE FROM employee WHERE id = $1";
+        await connection.query(deleteQuery, [employeeId]);
+
+        console.log(`Deleted employee with ID ${employeeId} from the database.`);
     } catch (error) {
         console.error(error);
     }
