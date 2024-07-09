@@ -341,165 +341,121 @@ function addManager() {
 }
 
 // Function to update an employee's role
-function updateEmployeeRole() {
-    // Retrieve list of employees from the database
-    connection.query(
-        `SELECT id, CONCAT(first_name, ' ', last_name) AS name FROM employee`,
-        (error, results) => {
-            if (error) {
-                console.error(error); // Log error if query fails
-                return;
-            }
+async function updateEmployeeRole() {
+    try {
+        // Retrieve list of employees
+        const employeeResults = await connection.query("SELECT id, CONCAT(first_name, ' ', last_name) AS name FROM employee");
+        const employees = employeeResults.rows.map(({ id, name }) => ({ name, value: id }));
 
-            // Map results to format required by Inquirer choices
-            const employees = results.map(({ id, name }) => ({
-                name,
-                value: id,
-            }));
+        // Retrieve list of roles
+        const roleResults = await connection.query("SELECT id, title FROM roles");
+        const roles = roleResults.rows.map(({ id, title }) => ({ name: title, value: id }));
 
-            // Retrieve list of roles from the database
-            connection.query("SELECT id, title FROM roles", (error, results) => {
-                if (error) {
-                    console.error(error); // Log error if query fails
-                    return;
-                }
+        // Prompt user to select an employee and a new role
+        const answers = await inquirer.prompt([
+            {
+                type: "list",
+                name: "employeeId",
+                message: "Select an employee to update:",
+                choices: employees,
+            },
+            {
+                type: "list",
+                name: "roleId",
+                message: "Select the new role for the employee:",
+                choices: roles,
+            },
+        ]);
 
-                // Map results to format required by Inquirer choices
-                const roles = results.map(({ id, title }) => ({
-                    name: title,
-                    value: id,
-                }));
+        // Update the employee's role in the database
+        const sql = "UPDATE employee SET role_id = $1 WHERE id = $2";
+        await connection.query(sql, [answers.roleId, answers.employeeId]);
 
-                // Prompt the user to select an employee and a new role
-                inquirer
-                    .prompt([
-                        {
-                            type: "list",
-                            name: "employeeId",
-                            message: "Select an employee to update:", // Prompt to select employee
-                            choices: employees,
-                        },
-                        {
-                            type: "list",
-                            name: "roleId",
-                            message: "Select the new role for the employee:", // Prompt to select role
-                            choices: roles,
-                        },
-                    ])
-                    .then((answers) => {
-                        // Update the employee's role in the database
-                        const sql = "UPDATE employee SET role_id = $1 WHERE id = $2";
-                        connection.query(sql, [answers.roleId, answers.employeeId], (error, results) => {
-                            if (error) {
-                                console.error(error); // Log error if query fails
-                                return;
-                            }
-
-                            console.log("Employee role updated successfully!"); // Confirmation message for updating role
-                            start(); // Restart the application
-                        });
-                    });
-            });
-        }
-    );
+        console.log("Employee role updated successfully!");
+        start(); // Restart the application
+    } catch (error) {
+        console.error("Error updating employee role:", error);
+    }
 }
 
 // Function to view employees by manager
-function viewEmployeesByManager() {
-    // Retrieve list of managers from the database
-    connection.query(
-        `SELECT DISTINCT m.id, CONCAT(m.first_name, ' ', m.last_name) AS name
-         FROM employee e
-         INNER JOIN employee m ON e.manager_id = m.id`,
-        (error, results) => {
-            if (error) {
-                console.error(error); // Log error if query fails
-                return;
-            }
+async function viewEmployeesByManager() {
+    try {
+        // Retrieve list of managers from the database
+        const managersQuery = `
+            SELECT DISTINCT m.id, CONCAT(m.first_name, ' ', m.last_name) AS name
+            FROM employee e
+            INNER JOIN employee m ON e.manager_id = m.id
+        `;
+        const managersResult = await connection.query(managersQuery);
+        const managers = managersResult.rows.map(({ id, name }) => ({ name, value: id }));
 
-            // Map results to format required by Inquirer choices
-            const managers = results.map(({ id, name }) => ({
-                name,
-                value: id,
-            }));
+        // Prompt the user to select a manager
+        const answer = await inquirer.prompt([
+            {
+                type: "list",
+                name: "managerId",
+                message: "Select a manager to view their employees:",
+                choices: managers,
+            },
+        ]);
 
-            // Prompt the user to select a manager
-            inquirer
-                .prompt([
-                    {
-                        type: "list",
-                        name: "managerId",
-                        message: "Select a manager to view their employees:", // Prompt to select manager
-                        choices: managers,
-                    },
-                ])
-                .then((answer) => {
-                    // Retrieve list of employees for the selected manager
-                    const sql = `
-                        SELECT e.id, e.first_name, e.last_name, r.title, d.department_name, r.salary
-                        FROM employee e
-                        INNER JOIN roles r ON e.role_id = r.id
-                        INNER JOIN departments d ON r.department_id = d.id
-                        WHERE e.manager_id = $1`;
-                    connection.query(sql, [answer.managerId], (error, results) => {
-                        if (error) {
-                            console.error(error); // Log error if query fails
-                            return;
-                        }
+        // Retrieve list of employees for the selected manager
+        const employeesQuery = `
+            SELECT e.id, e.first_name, e.last_name, r.title, d.department_name, r.salary
+            FROM employee e
+            INNER JOIN roles r ON e.role_id = r.id
+            INNER JOIN departments d ON r.department_id = d.id
+            WHERE e.manager_id = $1
+        `;
+        const employeesResult = await connection.query(employeesQuery, [answer.managerId]);
+        const employees = employeesResult.rows;
 
-                        console.table(results); // Display employees in a table
-                        start(); // Restart the application
-                    });
-                });
-        }
-    );
+        console.table(employees); // Display employees in a table
+        start(); // Restart the application
+    } catch (error) {
+        console.error("Error viewing employees by manager:", error);
+    }
 }
 
 // Function to view employees by department
-function viewEmployeesByDepartment() {
-    // Retrieve list of departments from the database
-    connection.query("SELECT id, department_name FROM departments", (error, results) => {
-        if (error) {
-            console.error(error); // Log error if query fails
-            return;
-        }
-
-        // Map results to format required by Inquirer choices
-        const departments = results.map(({ id, department_name }) => ({
+async function viewEmployeesByDepartment() {
+    try {
+        // Retrieve list of departments from the database
+        const departmentsQuery = "SELECT id, department_name FROM departments";
+        const departmentsResult = await connection.query(departmentsQuery);
+        const departments = departmentsResult.rows.map(({ id, department_name }) => ({
             name: department_name,
             value: id,
         }));
 
         // Prompt the user to select a department
-        inquirer
-            .prompt([
-                {
-                    type: "list",
-                    name: "departmentId",
-                    message: "Select a department to view its employees:", // Prompt to select department
-                    choices: departments,
-                },
-            ])
-            .then((answer) => {
-                // Retrieve list of employees for the selected department
-                const sql = `
-                    SELECT e.id, e.first_name, e.last_name, r.title, r.salary, CONCAT(m.first_name, ' ', m.last_name) AS manager_name
-                    FROM employee e
-                    INNER JOIN roles r ON e.role_id = r.id
-                    INNER JOIN departments d ON r.department_id = d.id
-                    LEFT JOIN employee m ON e.manager_id = m.id
-                    WHERE d.id = $1`;
-                connection.query(sql, [answer.departmentId], (error, results) => {
-                    if (error) {
-                        console.error(error); // Log error if query fails
-                        return;
-                    }
+        const answer = await inquirer.prompt([
+            {
+                type: "list",
+                name: "departmentId",
+                message: "Select a department to view its employees:",
+                choices: departments,
+            },
+        ]);
 
-                    console.table(results); // Display employees in a table
-                    start(); // Restart the application
-                });
-            });
-    });
+        // Retrieve list of employees for the selected department
+        const employeesQuery = `
+            SELECT e.id, e.first_name, e.last_name, r.title, r.salary, CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+            FROM employee e
+            INNER JOIN roles r ON e.role_id = r.id
+            INNER JOIN departments d ON r.department_id = d.id
+            LEFT JOIN employee m ON e.manager_id = m.id
+            WHERE d.id = $1
+        `;
+        const employeesResult = await connection.query(employeesQuery, [answer.departmentId]);
+        const employees = employeesResult.rows;
+
+        console.table(employees); // Display employees in a table
+        start(); // Restart the application
+    } catch (error) {
+        console.error("Error viewing employees by department:", error);
+    }
 }
 
 // Function to delete departments, roles, or employees
@@ -533,9 +489,17 @@ function deleteDepartmentsRolesEmployees() {
 // Function to delete a department
 function deleteDepartment() {
     // Retrieve list of departments from the database
-    connection.query("SELECT id, department_name FROM departments", (error, results) => {
+    const departmentsQuery = "SELECT id, department_name FROM departments";
+    connection.query(departmentsQuery, (error, results) => {
         if (error) {
             console.error(error); // Log error if query fails
+            return;
+        }
+
+        // Ensure results exist and are in expected format
+        if (!results || !Array.isArray(results) || results.length === 0) {
+            console.log("No departments found to delete.");
+            start(); // Restart the application
             return;
         }
 
@@ -557,10 +521,10 @@ function deleteDepartment() {
             ])
             .then((answer) => {
                 // Delete the selected department from the database
-                const sql = "DELETE FROM departments WHERE id = $1";
-                connection.query(sql, [answer.departmentId], (error, results) => {
+                const deleteQuery = "DELETE FROM departments WHERE id = $1";
+                connection.query(deleteQuery, [answer.departmentId], (error, deleteResult) => {
                     if (error) {
-                        console.error(error); // Log error if query fails
+                        console.error(error); // Log error if delete query fails
                         return;
                     }
 
@@ -571,12 +535,20 @@ function deleteDepartment() {
     });
 }
 
-// Function to delete a role
+// Function to delete a role (similar approach can be applied to deleteEmployee())
 function deleteRole() {
     // Retrieve list of roles from the database
-    connection.query("SELECT id, title FROM roles", (error, results) => {
+    const rolesQuery = "SELECT id, title FROM roles";
+    connection.query(rolesQuery, (error, results) => {
         if (error) {
             console.error(error); // Log error if query fails
+            return;
+        }
+
+        // Ensure results exist and are in expected format
+        if (!results || !Array.isArray(results) || results.length === 0) {
+            console.log("No roles found to delete.");
+            start(); // Restart the application
             return;
         }
 
@@ -586,76 +558,81 @@ function deleteRole() {
             value: id,
         }));
 
-                // Prompt the user to select a role to delete
-                inquirer
-                .prompt([
-                    {
-                        type: "list",
-                        name: "roleId",
-                        message: "Select a role to delete:", // Prompt to select role
-                        choices: roles,
-                    },
-                ])
-                .then((answer) => {
-                    // Delete the selected role from the database
-                    const sql = "DELETE FROM roles WHERE id = $1";
-                    connection.query(sql, [answer.roleId], (error, results) => {
-                        if (error) {
-                            console.error(error); // Log error if query fails
-                            return;
-                        }
-    
-                        console.log("Role deleted successfully!"); // Confirmation message for deleting role
-                        start(); // Restart the application
-                    });
+        // Prompt the user to select a role to delete
+        inquirer
+            .prompt([
+                {
+                    type: "list",
+                    name: "roleId",
+                    message: "Select a role to delete:", // Prompt to select role
+                    choices: roles,
+                },
+            ])
+            .then((answer) => {
+                // Delete the selected role from the database
+                const deleteQuery = "DELETE FROM roles WHERE id = $1";
+                connection.query(deleteQuery, [answer.roleId], (error, deleteResult) => {
+                    if (error) {
+                        console.error(error); // Log error if delete query fails
+                        return;
+                    }
+
+                    console.log("Role deleted successfully!"); // Confirmation message for deleting role
+                    start(); // Restart the application
                 });
-        });
-    }
-    
-    // Function to delete an employee
-    function deleteEmployee() {
-        // Retrieve list of employees from the database
-        connection.query(
-            `SELECT id, CONCAT(first_name, ' ', last_name) AS name FROM employee`,
-            (error, results) => {
-                if (error) {
-                    console.error(error); // Log error if query fails
-                    return;
-                }
-    
-                // Map results to format required by Inquirer choices
-                const employees = results.map(({ id, name }) => ({
-                    name,
-                    value: id,
-                }));
-    
-                // Prompt the user to select an employee to delete
-                inquirer
-                    .prompt([
-                        {
-                            type: "list",
-                            name: "employeeId",
-                            message: "Select an employee to delete:", // Prompt to select employee
-                            choices: employees,
-                        },
-                    ])
-                    .then((answer) => {
-                        // Delete the selected employee from the database
-                        const sql = "DELETE FROM employee WHERE id = $1";
-                        connection.query(sql, [answer.employeeId], (error, results) => {
-                            if (error) {
-                                console.error(error); // Log error if query fails
-                                return;
-                            }
-    
-                            console.log("Employee deleted successfully!"); // Confirmation message for deleting employee
-                            start(); // Restart the application
-                        });
-                    });
-            }
-        );
-    }
-    
+            });
+    });
+}
+ 
+// Function to delete an employee
+function deleteEmployee() {
+    // Retrieve list of employees from the database
+    const employeesQuery = "SELECT id, CONCAT(first_name, ' ', last_name) AS name FROM employee";
+    connection.query(employeesQuery, (error, results) => {
+        if (error) {
+            console.error(error); // Log error if query fails
+            return;
+        }
+
+        // Ensure results exist and are in expected format
+        if (!results || !Array.isArray(results) || results.length === 0) {
+            console.log("No employees found to delete.");
+            start(); // Restart the application
+            return;
+        }
+
+        // Map results to format required by Inquirer choices
+        const employees = results.map(({ id, name }) => ({
+            name,
+            value: id,
+        }));
+
+        // Prompt the user to select an employee to delete
+        inquirer
+            .prompt([
+                {
+                    type: "list",
+                    name: "employeeId",
+                    message: "Select an employee to delete:", // Prompt to select employee
+                    choices: employees,
+                },
+            ])
+            .then((answer) => {
+                // Delete the selected employee from the database
+                const deleteQuery = "DELETE FROM employee WHERE id = $1";
+                connection.query(deleteQuery, [answer.employeeId], (error, deleteResult) => {
+                    if (error) {
+                        console.error(error); // Log error if delete query fails
+                        return;
+                    }
+
+                    console.log("Employee deleted successfully!"); // Confirmation message for deleting employee
+                    start(); // Restart the application
+                });
+            });
+    });
+}
+
     // Function to view the total utilized budget of a department
     function viewTotalUtilizedBudgetOfDepartment() {
         // Retrieve list of departments from the database
