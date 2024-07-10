@@ -50,14 +50,14 @@ function start() {
             name: "action",
             message: "What would you like to do?", // User prompt message
             choices: [
-                "View all departments",
-                "View all roles",
-                "View all employees",
-                "Add a department",
-                "Add a role",
-                "Add an employee",
+                "View all Departments",
+                "View all Roles",
+                "View all Employees",
+                "Add a Department",
+                "Add a Role",
+                "Add an Employee",
                 "Add a Manager",
-                "Update an employee role",
+                "Update an Employee Role",
                 "View Employees by Manager",
                 "View Employees by Department",
                 "Delete Departments | Roles | Employees",
@@ -68,28 +68,28 @@ function start() {
         .then((answer) => {
             // Perform action based on user choice
             switch (answer.action) {
-                case "View all departments":
+                case "View all Departments":
                     viewAllDepartments();
                     break;
-                case "View all roles":
+                case "View all Roles":
                     viewAllRoles();
                     break;
-                case "View all employees":
+                case "View all Employees":
                     viewAllEmployees();
                     break;
-                case "Add a department":
+                case "Add a Department":
                     addDepartment();
                     break;
-                case "Add a role":
+                case "Add a Role":
                     addRole();
                     break;
-                case "Add an employee":
+                case "Add an Employee":
                     addEmployee();
                     break;
                 case "Add a Manager":
                     addManager();
                     break;
-                case "Update an employee role":
+                case "Update an Employee Role":
                     updateEmployeeRole();
                     break;
                 case "View Employees by Manager":
