@@ -80,7 +80,7 @@ THEN I am prompted to select an employee to update and their new role and this i
 ![](./assets/images/screenshot2.png)
 ### Figure 3.
 ![](./assets/images/screenshot3.png)
-### Figure 3.
+### Figure 4.
 ![](./assets/images/screenshot4.png)
 
 
